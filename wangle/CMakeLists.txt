@@ -116,9 +116,15 @@ target_link_libraries(wangle
   ${GLOG_LIBRARIES}
   ${GFLAGS_LIBRARIES}
   ${LIBEVENT_LIBRARIES}
-  ${DOUBLE_CONVERSION_LIBRARIES}
-  ${LIBDL_LIBRARIES}
-  ${LIBRT_LIBRARIES})
+  ${DOUBLE_CONVERSION_LIBRARIES})
+
+if(LIBDL_FOUND)
+   target_link_libraries(wangle ${LIBDL_LIBRARIES})
+endif()
+
+if(LIBRT_FOUND) 
+   target_link_libraries(wangle ${LIBRT_LIBRARIES})
+endif()
 
 install(TARGETS wangle DESTINATION lib)
 foreach(dir ${WANGLE_HEADER_DIRS})
@@ -226,3 +232,21 @@ if(BUILD_EXAMPLES)
   add_executable(BroadcastProxy example/broadcast/BroadcastProxy.cpp)
   target_link_libraries(BroadcastProxy wangle)
 endif()
+
+set(ROCKETMQ_CLIENT4CPP_FILES
+        example/rocketmq-client4cpp/remoting/ClientHandler.h
+        example/rocketmq-client4cpp/remoting/ClientHandler.cpp
+        example/rocketmq-client4cpp/remoting/RemotingCommandCustomHeader.h
+        example/rocketmq-client4cpp/remoting/RemotingCommandCustomHeader.cpp
+        example/rocketmq-client4cpp/remoting/RemotingClient.h
+        example/rocketmq-client4cpp/remoting/RemotingClient.cpp
+        example/rocketmq-client4cpp/remoting/RemotingCommand.h
+        example/rocketmq-client4cpp/remoting/RemotingCommand.cpp
+        example/rocketmq-client4cpp/remoting/InvokeCallback.h
+        example/rocketmq-client4cpp/remoting/ResponseFuture.h
+        example/rocketmq-client4cpp/remoting/RemotingCommandCodec.cpp
+        example/rocketmq-client4cpp/remoting/RemotingCommandCodec.h
+        example/rocketmq-client4cpp/Main.cpp)
+
+add_executable(rocketmq_client ${ROCKETMQ_CLIENT4CPP_FILES})
+target_link_libraries(rocketmq_client wangle)
