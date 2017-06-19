@@ -10,7 +10,6 @@ void rocketmq::RemotingCommandCodec::read(Context *ctx, std::unique_ptr<folly::I
 }
 
 folly::Future<folly::Unit> rocketmq::RemotingCommandCodec::write(Context *ctx, rocketmq::RemotingCommand msg) {
-    std::string data = "abc";
-    auto buf = folly::IOBuf::copyBuffer(data.data(), data.size());
+    std::unique_ptr<folly::IOBuf> buf = msg.encode();
     return ctx->fireWrite(std::move(buf));
 }

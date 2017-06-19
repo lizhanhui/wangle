@@ -56,6 +56,39 @@ namespace rocketmq {
             return opaque;
         }
 
+        template <typename T>
+        std::unique_ptr<folly::IOBuf> prepend(std::unique_ptr<folly::IOBuf>&& buf, T t) {
+            int len = sizeof(T);
+            unsigned char data[len];
+            for (int i = 0; i < len; ++i) {
+                data[i] = (unsigned char)((t >> 8 *(len - i - 1)) & 0xFF);
+            }
+            std::unique_ptr<folly::IOBuf> buffer = folly::IOBuf::wrapBuffer(data, len);
+            buffer->appendChain(std::move(buf));
+            return buffer;
+        }
+
+        std::unique_ptr<folly::IOBuf> encode() {
+            int length = 4;
+            std::unique_ptr<folly::IOBuf> header = encodeHeader();
+            int headerLength = (int) header->length();
+            length += headerLength;
+            if (nullptr != body) {
+                length += body->length();
+                header->appendChain(std::move(body));
+            }
+
+            unsigned char headerMeta[4];
+            headerMeta[0] = serializationType;
+            headerMeta[1] = (unsigned char) ((headerLength >> 16) & 0xFF);
+            headerMeta[2] = (unsigned char) ((headerLength >> 8) & 0xFF);
+            headerMeta[3] = (unsigned char) ((headerLength >> 0) & 0xFF);
+
+            std::unique_ptr<folly::IOBuf> headerBuf = folly::IOBuf::wrapBuffer(headerMeta, 4);
+            headerBuf->appendChain(std::move(header));
+            return prepend(std::move(headerBuf), length);
+        }
+
         std::unique_ptr<folly::IOBuf> encodeHeader() {
             if (nullptr != customHeader) {
                 customHeader->toNet();
@@ -86,7 +119,7 @@ namespace rocketmq {
         std::string remark;
         std::shared_ptr<RemotingCommandCustomHeader> customHeader;
         SerializationType serializationType;
-        unsigned char body[];
+        std::unique_ptr<folly::IOBuf> body;
 
         friend class RemotingEncoder;
         friend class RemotingDecoder;
