@@ -246,6 +246,7 @@ set(ROCKETMQ_CLIENT4CPP_FILES
         example/rocketmq-client4cpp/remoting/ResponseFuture.h
         example/rocketmq-client4cpp/remoting/RemotingCommandCodec.cpp
         example/rocketmq-client4cpp/remoting/RemotingCommandCodec.h
+        example/rocketmq-client4cpp/remoting/Helper.h
         example/rocketmq-client4cpp/Main.cpp)
 
 add_executable(rocketmq_client ${ROCKETMQ_CLIENT4CPP_FILES})

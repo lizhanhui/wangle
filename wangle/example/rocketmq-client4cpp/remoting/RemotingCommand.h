@@ -8,6 +8,7 @@
 #include <folly/dynamic.h>
 #include <folly/json.h>
 #include "RemotingCommandCustomHeader.h"
+#include "Helper.h"
 
 namespace rocketmq {
 
@@ -56,58 +57,13 @@ namespace rocketmq {
             return opaque;
         }
 
-        template <typename T>
-        std::unique_ptr<folly::IOBuf> prepend(std::unique_ptr<folly::IOBuf>&& buf, T t) {
-            int len = sizeof(T);
-            unsigned char data[len];
-            for (int i = 0; i < len; ++i) {
-                data[i] = (unsigned char)((t >> 8 *(len - i - 1)) & 0xFF);
-            }
-            std::unique_ptr<folly::IOBuf> buffer = folly::IOBuf::wrapBuffer(data, len);
-            buffer->appendChain(std::move(buf));
-            return buffer;
-        }
+        std::unique_ptr<folly::IOBuf> encode();
 
-        std::unique_ptr<folly::IOBuf> encode() {
-            int length = 4;
-            std::unique_ptr<folly::IOBuf> header = encodeHeader();
-            int headerLength = (int) header->length();
-            length += headerLength;
-            if (nullptr != body) {
-                length += body->length();
-                header->appendChain(std::move(body));
-            }
+        static std::unique_ptr<RemotingCommand> decode(std::unique_ptr<folly::IOBuf> buf);
 
-            unsigned char headerMeta[4];
-            headerMeta[0] = serializationType;
-            headerMeta[1] = (unsigned char) ((headerLength >> 16) & 0xFF);
-            headerMeta[2] = (unsigned char) ((headerLength >> 8) & 0xFF);
-            headerMeta[3] = (unsigned char) ((headerLength >> 0) & 0xFF);
+        std::unique_ptr<folly::IOBuf> encodeHeader();
 
-            std::unique_ptr<folly::IOBuf> headerBuf = folly::IOBuf::wrapBuffer(headerMeta, 4);
-            headerBuf->appendChain(std::move(header));
-            return prepend(std::move(headerBuf), length);
-        }
-
-        std::unique_ptr<folly::IOBuf> encodeHeader() {
-            if (nullptr != customHeader) {
-                customHeader->toNet();
-                switch(serializationType) {
-                    case JSON:
-                        folly::dynamic map = folly::dynamic::object();
-                        for (auto it = customHeader->extFields.begin(); it != customHeader->extFields.end(); it++) {
-                            map[it->first] = it->second;
-                        }
-                        std::string json = folly::toJson(map);
-                        return folly::IOBuf::copyBuffer(json.data(), json.length());
-                    case ROCKETMQ:
-                        // TODO: Manually serialize header map.
-                        break;
-                }
-            }
-
-            return nullptr;
-        }
+        static std::unique_ptr<RemotingCommandCustomHeader> decodeHeader(std::unique_ptr<folly::IOBuf> buf);
 
     private:
         static std::atomic_int requestId;
