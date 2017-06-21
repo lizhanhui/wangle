@@ -26,38 +26,36 @@ std::unique_ptr<rocketmq::RemotingCommand> rocketmq::RemotingCommand::decode(std
 }
 
 std::unique_ptr<folly::IOBuf> rocketmq::RemotingCommand::encodeHeader() {
-    {
-        if (nullptr != customHeader) {
-            customHeader->toNet(this);
-        }
-
-        switch(serializationType) {
-            case JSON:
-            {
-                folly::dynamic map = folly::dynamic::object();
-                for (auto it = extFields.begin(); it != extFields.end(); it++) {
-                    map[it->first] = it->second;
-                }
-
-                map["code"] = code;
-                map["language"] = 1;
-                map["version"] = 0;
-                map["opaque"] = opaque;
-                map["flag"] = flag;
-                map["remark"] = remark;
-
-                std::string json = folly::toJson(map);
-                return folly::IOBuf::copyBuffer(json.data(), json.length());
-            }
-
-            case ROCKETMQ:
-            {
-                break;
-            }
-        }
-
-        return nullptr;
+    if (nullptr != customHeader) {
+        customHeader->toNet(this);
     }
+
+    switch(serializationType) {
+        case JSON:
+        {
+            folly::dynamic map = folly::dynamic::object();
+            for (auto it = extFields.begin(); it != extFields.end(); it++) {
+                map[it->first] = it->second;
+            }
+
+            map["code"] = code;
+            map["language"] = 1;
+            map["version"] = 0;
+            map["opaque"] = opaque;
+            map["flag"] = flag;
+            map["remark"] = remark;
+
+            std::string json = folly::toJson(map);
+            return folly::IOBuf::copyBuffer(json.data(), json.length());
+        }
+
+        case ROCKETMQ:
+        {
+            break;
+        }
+    }
+
+    return nullptr;
 }
 
 std::unique_ptr<rocketmq::RemotingCommandCustomHeader> rocketmq::RemotingCommand::decodeHeader(
