@@ -68,3 +68,5 @@ std::unique_ptr<rocketmq::RemotingCommandCustomHeader> rocketmq::RemotingCommand
 void rocketmq::GetRouteInfoRequestHeader::toNet(RemotingCommand *command) {
     command->addExtField("topic", topic);
 }
+
+std::atomic_int rocketmq::RemotingCommand::requestId = ATOMIC_VAR_INIT(0);

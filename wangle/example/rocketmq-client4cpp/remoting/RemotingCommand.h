@@ -66,8 +66,8 @@ namespace rocketmq {
             language = LanguageCode::CPP;
         }
 
-        static RemotingCommand createRequestCommand(int code, std::shared_ptr<RemotingCommandCustomHeader> header) {
-            return RemotingCommand(code, header);
+        static std::shared_ptr<RemotingCommand> createRequestCommand(int code, std::shared_ptr<RemotingCommandCustomHeader> header) {
+            return std::make_shared<RemotingCommand>(code, header);
         }
 
         void setCode(int code) {

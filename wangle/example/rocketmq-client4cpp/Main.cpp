@@ -14,10 +14,8 @@ int main(int argc, char** argv) {
     std::string address = "127.0.0.1:9876";
     std::string topic("TopicTest");
     std::shared_ptr<RemotingCommandCustomHeader> header = std::make_shared<GetRouteInfoRequestHeader>(topic);
-    std::unique_ptr<RemotingCommand> command = std::make_unique<RemotingCommand>();
-    command->setCustomHeader(header);
-    command->setCode(105);
-    client.invoke(address, std::move(command), 300000);
+    std::shared_ptr<RemotingCommand> command = RemotingCommand::createRequestCommand(105, header);
+    client.invoke(address, command, 300000);
 
 //    std::unordered_map<std::string, std::string> m;
 //
