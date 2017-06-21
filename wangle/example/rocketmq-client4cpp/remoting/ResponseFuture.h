@@ -9,7 +9,7 @@ namespace rocketmq {
 
     class ResponseFuture {
     public:
-        ResponseFuture(int opaque, int64_t timeoutMillis, const InvokeCallback& callback)
+        ResponseFuture(int opaque, int64_t timeoutMillis, std::shared_ptr<InvokeCallback> callback)
                 : opaque(opaque), timeoutMillis(timeoutMillis), callback(callback) {
             executeCallbackOnlyOnce = false;
         }
@@ -17,7 +17,7 @@ namespace rocketmq {
     private:
         int opaque;
         int64_t timeoutMillis;
-        const InvokeCallback& callback;
+        std::shared_ptr<InvokeCallback> callback;
 
         std::atomic_bool executeCallbackOnlyOnce;
 

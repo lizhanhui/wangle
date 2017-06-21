@@ -1,7 +1,3 @@
-//
-// Created by Li Zhanhui on 2017/6/18.
-//
-
 #ifndef PROJECT_REMOTINGCOMMANDCODEC_H
 #define PROJECT_REMOTINGCOMMANDCODEC_H
 
@@ -9,15 +5,17 @@
 #include "RemotingCommand.h"
 
 namespace rocketmq {
-    class RemotingCommandCodec : public wangle::Handler<std::unique_ptr<folly::IOBuf>, RemotingCommand, RemotingCommand, std::unique_ptr<folly::IOBuf> > {
+
+    class RemotingCommandCodec : public wangle::Handler<std::unique_ptr<folly::IOBuf>, std::shared_ptr<RemotingCommand>,
+            std::shared_ptr<RemotingCommand>, std::unique_ptr<folly::IOBuf> > {
 
     public:
-        typedef typename wangle::Handler<std::unique_ptr<folly::IOBuf>, RemotingCommand,
-                                         RemotingCommand, std::unique_ptr<folly::IOBuf>>::Context Context;
+        typedef typename wangle::Handler<std::unique_ptr<folly::IOBuf>, std::shared_ptr<RemotingCommand>,
+                std::shared_ptr<RemotingCommand>, std::unique_ptr<folly::IOBuf>>::Context Context;
 
         void read(Context *ctx, std::unique_ptr<folly::IOBuf> msg) override;
 
-        folly::Future<folly::Unit> write(Context *ctx, RemotingCommand msg) override;
+        folly::Future<folly::Unit> write(Context *ctx, std::shared_ptr<RemotingCommand> msg) override;
     };
 }
 

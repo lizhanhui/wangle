@@ -19,22 +19,7 @@
 
 namespace rocketmq {
 
-    typedef wangle::Pipeline<folly::IOBufQueue&, RemotingCommand> RocketMQPipeline;
-
-    class ChannelWrapper {
-    public:
-        ChannelWrapper(RocketMQPipeline* pipeline) : pipeline(pipeline) {
-
-        }
-
-        folly::Future<RocketMQPipeline*> write(const RemotingCommand& command) {
-            pipeline->write(command);
-        }
-
-    private:
-        RocketMQPipeline* pipeline;
-
-    };
+    typedef wangle::Pipeline<folly::IOBufQueue&, std::shared_ptr<RemotingCommand> > RocketMQPipeline;
 
     class RocketMQPipelineFactory : public wangle::PipelineFactory<RocketMQPipeline> {
     public:
@@ -50,7 +35,7 @@ namespace rocketmq {
 
         void start();
 
-        std::shared_ptr<ChannelWrapper> connect(const std::string& address, unsigned long timeout);
+        RocketMQPipeline* connect(const std::string& address, unsigned long timeout);
 
         static unsigned long long addressToLongLong(const std::string& addr) {
             std::string::size_type colon_position = addr.find(":");
@@ -73,15 +58,20 @@ namespace rocketmq {
             return 0;
         }
 
-        void invoke(std::string address, RemotingCommand& command, unsigned long timeout);
+        void invoke(std::string address, std::shared_ptr<RemotingCommand> command, unsigned long timeout);
 
-        void invokeAsync(const std::string& address, RemotingCommand& command, const InvokeCallback& callback, unsigned long timeout);
+        void invokeAsync(const std::string& address,
+                         std::shared_ptr<RemotingCommand> command,
+                         std::shared_ptr<InvokeCallback> callback,
+                         unsigned long timeout);
 
-        void invokeImpl(std::shared_ptr<ChannelWrapper> channelWrapper, RemotingCommand& command, unsigned long timeout);
+        void invokeImpl(RocketMQPipeline* pipeline,
+                        std::shared_ptr<RemotingCommand> command,
+                        unsigned long timeout);
 
-        void invokeAsyncImpl(std::shared_ptr<ChannelWrapper> channelWrapper,
-                             const RemotingCommand& command,
-                             const InvokeCallback& callback,
+        void invokeAsyncImpl(RocketMQPipeline* pipeline,
+                             std::shared_ptr<RemotingCommand> command,
+                             std::shared_ptr<InvokeCallback> callback,
                              unsigned long timeout);
 
 
@@ -90,7 +80,7 @@ namespace rocketmq {
 
     private:
         wangle::ClientBootstrap<RocketMQPipeline> client;
-        folly::AtomicHashMap<unsigned long long, std::shared_ptr<ChannelWrapper> > channelTable;
+        folly::AtomicHashMap<unsigned long long, RocketMQPipeline*> channelTable;
         folly::AtomicHashMap<int, std::shared_ptr<ResponseFuture> > responseTable;
         std::mutex lock;
 

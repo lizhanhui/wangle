@@ -19,77 +19,88 @@ rocketmq::RocketMQPipeline::Ptr rocketmq::RocketMQPipelineFactory::newPipeline(s
 
 
 
-void rocketmq::RemotingClient::invoke(std::string address, RemotingCommand &command, unsigned long timeout) {
+void rocketmq::RemotingClient::invoke(std::string address,
+                                      std::shared_ptr<RemotingCommand> command,
+                                      unsigned long timeout) {
     unsigned long long key = addressToLongLong(address);
     auto ret = channelTable.find(key);
-
+    rocketmq::RocketMQPipeline* pipeline;
     if (ret == channelTable.end()) {
-        std::shared_ptr<ChannelWrapper> channelWrapper = connect(address, timeout);
-        invokeImpl(channelWrapper, command, timeout);
+        pipeline = connect(address, timeout);
     } else {
-        std::shared_ptr<ChannelWrapper> channelWrapper = ret->second;
-        invokeImpl(channelWrapper, command, timeout);
+        pipeline = ret->second;
     }
+    invokeImpl(pipeline, std::move(command), timeout);
 }
 
-void rocketmq::RemotingClient::invokeAsync(const std::string& address, RemotingCommand& command,
-                                           const InvokeCallback& callback,
+void rocketmq::RemotingClient::invokeAsync(const std::string& address,
+                                           std::shared_ptr<RemotingCommand> command,
+                                           std::shared_ptr<InvokeCallback> callback,
                                            unsigned long timeout) {
     unsigned long long key = addressToLongLong(address);
     auto ret = channelTable.find(key);
-    std::shared_ptr<ChannelWrapper> channelWrapper;
+    rocketmq::RocketMQPipeline* pipeline;
     if (ret == channelTable.end()) {
-        channelWrapper = connect(address, timeout);
-        if (nullptr != channelWrapper) {
-            channelTable.insert(std::make_pair(key, channelWrapper));
-        }
+        pipeline = connect(address, timeout);
     } else {
-        channelWrapper = ret->second;
+        pipeline = ret->second;
     }
 
-    invokeAsyncImpl(channelWrapper, command, callback, timeout);
-
+    invokeAsyncImpl(pipeline, std::move(command), callback, timeout);
 }
 
-void rocketmq::RemotingClient::invokeImpl(std::shared_ptr<ChannelWrapper> channelWrapper,
-                                          RemotingCommand &command,
+void rocketmq::RemotingClient::invokeImpl(rocketmq::RocketMQPipeline* pipeline,
+                                          std::shared_ptr<RemotingCommand> command,
                                           unsigned long timeout) {
-    folly::Future<RocketMQPipeline*> future = channelWrapper->write(command);
-    future.wait(folly::Duration(timeout));
+    pipeline->write(command).wait(folly::Duration(timeout));
 }
 
-void rocketmq::RemotingClient::invokeAsyncImpl(std::shared_ptr<ChannelWrapper> channelWrapper,
-                                               const RemotingCommand &command,
-                                               const InvokeCallback& callback,
+void rocketmq::RemotingClient::invokeAsyncImpl(rocketmq::RocketMQPipeline* pipeline,
+                                               std::shared_ptr<RemotingCommand> command,
+                                               std::shared_ptr<InvokeCallback> callback,
                                                unsigned long timeout) {
-    channelWrapper->write(command);
-    unsigned long long timeoutMillis = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() + timeout;
-    std::shared_ptr<ResponseFuture> future = std::make_shared<ResponseFuture>(command.getOpaque(), timeoutMillis, callback);
-    responseTable.insert(std::make_pair(command.getOpaque(), future));
+
+    unsigned long long timeoutMillis = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count() + timeout;
+    std::shared_ptr<ResponseFuture> future = std::make_shared<ResponseFuture>(command->getOpaque(), timeoutMillis, callback);
+    responseTable.insert(std::make_pair(command->getOpaque(), future));
+
+    pipeline->write(command);
+//            .then([&]{
+//                callback->onSuccess();
+//            })
+//            .onError([&]{
+//                responseTable.erase(command->getOpaque());
+//                callback->onError();
+//            })
+//            .onTimeout(folly::Duration(timeout), [&] {
+//                responseTable.erase(command->getOpaque());
+//                callback->onError();
+//            });
 }
 
-std::shared_ptr<rocketmq::ChannelWrapper> rocketmq::RemotingClient::connect(const std::string& address, unsigned long timeout) {
+rocketmq::RocketMQPipeline* rocketmq::RemotingClient::connect(const std::string& address, unsigned long timeout) {
     unsigned long long key = addressToLongLong(address);
     auto ret = channelTable.find(key);
     if (ret != channelTable.end()) {
         return ret->second;
     }
 
+
     {
         std::lock_guard<std::mutex> guard(lock);
         ret = channelTable.find(key);
-        if (ret != channelTable.end()) {
-            return ret->second;
-        } else {
+        if (ret == channelTable.end()) {
             std::string::size_type colonPosition = address.find(":");
             std::string ip = address.substr(0, colonPosition);
             uint16_t port = (uint16_t) std::stoul(address.substr(colonPosition + 1));
             folly::SocketAddress socketAddress = folly::SocketAddress(ip, port);
             folly::Future<RocketMQPipeline*> future = client.connect(socketAddress, std::chrono::milliseconds(timeout));
-            std::shared_ptr<rocketmq::ChannelWrapper> channelWrapper = std::make_shared<rocketmq::ChannelWrapper>(future.get(std::chrono::milliseconds(timeout)));
-            channelTable.insert(std::make_pair(key, channelWrapper));
-            return channelWrapper;
+            RocketMQPipeline* pipeline = future.get();
+            channelTable.insert(std::make_pair(key, pipeline));
+            return pipeline;
+        } else {
+            return ret->second;
         }
     }
-
 }

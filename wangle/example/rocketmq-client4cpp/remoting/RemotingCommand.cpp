@@ -3,7 +3,7 @@
 std::unique_ptr<folly::IOBuf> rocketmq::RemotingCommand::encode() {
     int length = 4;
     std::unique_ptr<folly::IOBuf> header = encodeHeader();
-    int headerLength = (int) header->length();
+    int headerLength = (nullptr == header) ? 0 : (int) header->length();
     length += headerLength;
     if (nullptr != body) {
         length += body->length();
@@ -22,24 +22,37 @@ std::unique_ptr<folly::IOBuf> rocketmq::RemotingCommand::encode() {
 }
 
 std::unique_ptr<rocketmq::RemotingCommand> rocketmq::RemotingCommand::decode(std::unique_ptr<folly::IOBuf> buf) {
-
+    return nullptr;
 }
 
 std::unique_ptr<folly::IOBuf> rocketmq::RemotingCommand::encodeHeader() {
     {
         if (nullptr != customHeader) {
-            customHeader->toNet();
-            switch(serializationType) {
-                case JSON:
-                    folly::dynamic map = folly::dynamic::object();
-                    for (auto it = customHeader->extFields.begin(); it != customHeader->extFields.end(); it++) {
-                        map[it->first] = it->second;
-                    }
-                    std::string json = folly::toJson(map);
-                    return folly::IOBuf::copyBuffer(json.data(), json.length());
-                case ROCKETMQ:
-                    // TODO: Manually serialize header map.
-                    break;
+            customHeader->toNet(this);
+        }
+
+        switch(serializationType) {
+            case JSON:
+            {
+                folly::dynamic map = folly::dynamic::object();
+                for (auto it = extFields.begin(); it != extFields.end(); it++) {
+                    map[it->first] = it->second;
+                }
+
+                map["code"] = code;
+                map["language"] = 1;
+                map["version"] = 0;
+                map["opaque"] = opaque;
+                map["flag"] = flag;
+                map["remark"] = remark;
+
+                std::string json = folly::toJson(map);
+                return folly::IOBuf::copyBuffer(json.data(), json.length());
+            }
+
+            case ROCKETMQ:
+            {
+                break;
             }
         }
 
@@ -49,5 +62,9 @@ std::unique_ptr<folly::IOBuf> rocketmq::RemotingCommand::encodeHeader() {
 
 std::unique_ptr<rocketmq::RemotingCommandCustomHeader> rocketmq::RemotingCommand::decodeHeader(
         std::unique_ptr<folly::IOBuf> buf) {
+    return nullptr;
+}
 
+void rocketmq::GetRouteInfoRequestHeader::toNet(RemotingCommand *command) {
+    command->addExtField("topic", topic);
 }

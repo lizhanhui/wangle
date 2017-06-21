@@ -6,7 +6,9 @@
 namespace rocketmq {
 
     class InvokeCallback {
-        virtual void operationComplete(folly::Future<RemotingCommand>& future) = 0;
+    public:
+        virtual void onSuccess() = 0;
+        virtual void onError() = 0;
     };
 }
 

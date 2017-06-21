@@ -5,8 +5,11 @@
 #include "RemotingCommand.h"
 
 namespace rocketmq {
-    class ClientHandler : public wangle::HandlerAdapter<RemotingCommand> {
+    class ClientHandler : public wangle::HandlerAdapter<std::shared_ptr<RemotingCommand> > {
     public:
+        typedef wangle::HandlerAdapter<std::shared_ptr<RemotingCommand> >::Context Context;
+
+        void read(Context *ctx, std::shared_ptr<RemotingCommand> msg) override;
 
     };
 }

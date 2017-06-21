@@ -236,8 +236,6 @@ endif()
 set(ROCKETMQ_CLIENT4CPP_FILES
         example/rocketmq-client4cpp/remoting/ClientHandler.h
         example/rocketmq-client4cpp/remoting/ClientHandler.cpp
-        example/rocketmq-client4cpp/remoting/RemotingCommandCustomHeader.h
-        example/rocketmq-client4cpp/remoting/RemotingCommandCustomHeader.cpp
         example/rocketmq-client4cpp/remoting/RemotingClient.h
         example/rocketmq-client4cpp/remoting/RemotingClient.cpp
         example/rocketmq-client4cpp/remoting/RemotingCommand.h

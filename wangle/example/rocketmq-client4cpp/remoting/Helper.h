@@ -1,6 +1,8 @@
 #ifndef PROJECT_HELPER_H
 #define PROJECT_HELPER_H
 
+#include <folly/io/IOBuf.h>
+
 namespace rocketmq {
     class Helper {
     public:
