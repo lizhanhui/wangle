@@ -11,6 +11,7 @@
 #include <folly/SocketAddress.h>
 #include <ctime>
 #include <mutex>
+#include <iostream>
 
 #include "RemotingCommand.h"
 #include "RemotingCommandCodec.h"

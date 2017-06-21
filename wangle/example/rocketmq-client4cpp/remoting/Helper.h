@@ -18,7 +18,7 @@ namespace rocketmq {
         for (int i = 0; i < len; ++i) {
             data[i] = (unsigned char)((t >> (8 * (len - i - 1))) & 0xFF);
         }
-        std::unique_ptr<folly::IOBuf> buffer = folly::IOBuf::wrapBuffer(data, len);
+        std::unique_ptr<folly::IOBuf> buffer = folly::IOBuf::copyBuffer(data, len);
         buffer->appendChain(std::move(buf));
         return buffer;
     }

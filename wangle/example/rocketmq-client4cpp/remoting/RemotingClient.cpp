@@ -52,7 +52,11 @@ void rocketmq::RemotingClient::invokeAsync(const std::string& address,
 void rocketmq::RemotingClient::invokeImpl(rocketmq::RocketMQPipeline* pipeline,
                                           std::shared_ptr<RemotingCommand> command,
                                           unsigned long timeout) {
-    pipeline->write(command).wait(folly::Duration(timeout));
+    pipeline->write(command)
+            .within(folly::Duration(timeout))
+            .then([]{
+                std::cout << "Sent OK" << std::endl;
+            });
 }
 
 void rocketmq::RemotingClient::invokeAsyncImpl(rocketmq::RocketMQPipeline* pipeline,

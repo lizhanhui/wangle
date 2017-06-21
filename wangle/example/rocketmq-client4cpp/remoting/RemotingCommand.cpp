@@ -16,7 +16,7 @@ std::unique_ptr<folly::IOBuf> rocketmq::RemotingCommand::encode() {
     headerMeta[2] = (unsigned char) ((headerLength >> 8) & 0xFF);
     headerMeta[3] = (unsigned char) ((headerLength >> 0) & 0xFF);
 
-    std::unique_ptr<folly::IOBuf> headerBuf = folly::IOBuf::wrapBuffer(headerMeta, 4);
+    std::unique_ptr<folly::IOBuf> headerBuf = folly::IOBuf::copyBuffer(headerMeta, 4);
     headerBuf->appendChain(std::move(header));
     return Helper::prepend(std::move(headerBuf), length);
 }
