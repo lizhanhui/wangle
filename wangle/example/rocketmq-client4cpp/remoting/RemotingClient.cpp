@@ -3,7 +3,7 @@
 
 void rocketmq::RemotingClient::start() {
     client.group(std::make_shared<wangle::IOThreadPoolExecutor>(1));
-    client.pipelineFactory(std::make_shared<RocketMQPipelineFactory>());
+    client.pipelineFactory(std::make_shared<RocketMQPipelineFactory>(this));
 }
 
 rocketmq::RocketMQPipeline::Ptr rocketmq::RocketMQPipelineFactory::newPipeline(std::shared_ptr<folly::AsyncTransportWrapper> sock) {
@@ -12,14 +12,14 @@ rocketmq::RocketMQPipeline::Ptr rocketmq::RocketMQPipelineFactory::newPipeline(s
     pipeline->addBack(wangle::EventBaseHandler());
     pipeline->addBack(wangle::LengthFieldBasedFrameDecoder(4, UINT_MAX, 0, 0, 4, true));
     pipeline->addBack(rocketmq::RemotingCommandCodec());
-    pipeline->addBack(rocketmq::ClientHandler());
+    pipeline->addBack(rocketmq::ClientHandler(client));
     pipeline->finalize();
     return pipeline;
 }
 
 
 
-void rocketmq::RemotingClient::invoke(std::string address,
+std::shared_ptr<rocketmq::RemotingCommand> rocketmq::RemotingClient::invoke(std::string address,
                                       std::shared_ptr<RemotingCommand> command,
                                       unsigned long timeout) {
     unsigned long long key = addressToLongLong(address);
@@ -30,7 +30,7 @@ void rocketmq::RemotingClient::invoke(std::string address,
     } else {
         pipeline = ret->second;
     }
-    invokeImpl(pipeline, std::move(command), timeout);
+    return invokeImpl(pipeline, std::move(command), timeout);
 }
 
 void rocketmq::RemotingClient::invokeAsync(const std::string& address,
@@ -49,14 +49,24 @@ void rocketmq::RemotingClient::invokeAsync(const std::string& address,
     invokeAsyncImpl(pipeline, std::move(command), callback, timeout);
 }
 
-void rocketmq::RemotingClient::invokeImpl(rocketmq::RocketMQPipeline* pipeline,
+std::shared_ptr<rocketmq::RemotingCommand> rocketmq::RemotingClient::invokeImpl(rocketmq::RocketMQPipeline* pipeline,
                                           std::shared_ptr<RemotingCommand> command,
                                           unsigned long timeout) {
     pipeline->write(command)
             .within(folly::Duration(timeout))
             .then([]{
+                //TODO: Replace std::cout with glog.
                 std::cout << "Sent OK" << std::endl;
             });
+    std::shared_ptr<ResponseFuture> future = std::make_shared<ResponseFuture>(command->getOpaque(), timeout, nullptr);
+    responseTable.insert(std::make_pair(command->getOpaque(), future));
+    future->await();
+    if (future->isSuccess()) {
+        return future->getResult();
+    } else {
+        responseTable.erase(command->getOpaque());
+        return nullptr;
+    }
 }
 
 void rocketmq::RemotingClient::invokeAsyncImpl(rocketmq::RocketMQPipeline* pipeline,

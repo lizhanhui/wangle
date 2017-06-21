@@ -98,6 +98,11 @@ namespace rocketmq {
             extFields[key] = value;
         }
 
+        bool isResponse() {
+            int bits = 1;
+            return (bits & flag) == bits;
+        }
+
     private:
         static std::atomic_int requestId;
         int code;
