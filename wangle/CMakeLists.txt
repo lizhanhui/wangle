@@ -12,6 +12,7 @@ project("wangle" VERSION 1.0.0 LANGUAGES CXX C)
 add_compile_options(-std=c++1y)
 add_compile_options(-fPIC)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/)
+set(CMAKE_BUILD_TYPE Debug)
 
 # When installing Folly & Wangle in a non-default prefix, this will let
 # projects linking against libwangle.so to find libfolly.so automatically.
@@ -55,6 +56,7 @@ set(WANGLE_HEADER_DIRS
   channel
   client
   codec
+  codec/http
   deprecated
   service
   ssl
@@ -89,6 +91,12 @@ set(WANGLE_SOURCES
   codec/LengthFieldBasedFrameDecoder.cpp
   codec/LengthFieldPrepender.cpp
   codec/LineBasedFrameDecoder.cpp
+  codec/http/HttpRequest.cpp
+  codec/http/HttpResponse.cpp
+  codec/http/HttpRequestDecoder.cpp
+  codec/http/HttpRequestEncoder.cpp
+  codec/http/HttpResponseDecoder.cpp
+  codec/http/HttpResponseEncoder.cpp
   deprecated/rx/Dummy.cpp
   ssl/PasswordInFile.cpp
   ssl/ServerSSLContext.cpp
@@ -270,4 +278,11 @@ if(BUILD_EXAMPLES)
   target_link_libraries(AcceptServer wangle)
   add_executable(BroadcastProxy example/broadcast/BroadcastProxy.cpp)
   target_link_libraries(BroadcastProxy wangle)
+
+  add_executable(HttpServer example/http/HttpServer.cpp)
+  target_link_libraries(HttpServer wangle)
+
+  add_executable(HttpClient example/http/HttpClient.cpp)
+  target_link_libraries(HttpClient wangle)
+
 endif()
