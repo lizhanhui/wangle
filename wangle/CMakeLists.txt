@@ -279,7 +279,7 @@ if(BUILD_EXAMPLES)
   add_executable(BroadcastProxy example/broadcast/BroadcastProxy.cpp)
   target_link_libraries(BroadcastProxy wangle)
 
-  add_executable(HttpServer example/http/HttpServer.cpp)
+  add_executable(HttpServer example/http/HttpServer.cpp example/http/CubeClient.cpp)
   target_link_libraries(HttpServer wangle)
 
   add_executable(HttpClient example/http/HttpClient.cpp)
